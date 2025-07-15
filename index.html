@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Generator Brimen</title>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('✅ ServiceWorker terdaftar:', reg.scope))
+                    .catch(err => console.error('❌ ServiceWorker gagal:', err));
+            });
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#024986',
+                        secondary: '#e76a28',
+                        graybg: '#f2f2f2'
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @media print {
+            @page {
+                margin: 0;
+            }
+
+            body {
+                margin: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+        }
+
+        .dotted-border {
+            border: 1px dotted #ccc;
+        }
+
+        .print-only {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-graybg text-gray-800">
+    <header class="bg-primary text-white py-4 shadow no-print">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <img src="https://upload.wikimedia.org/wikipedia/id/thumb/e/ef/Logo_Bank_BRI.svg/2560px-Logo_Bank_BRI.svg.png"
+                    alt="BRI Logo" class="h-8 w-auto">
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Label Generator Brimen</h1>
+                    <span class="text-xs">Kantor Cabang BRI Harapan Indah Bekasi</span>
+                </div>
+            </div>
+            <span class="text-sm">Cetak Label Tom & Jerry No.100 dari Excel</span>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-12">
+        <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-8 no-print">
+            <h2 class="text-xl font-semibold mb-4 text-primary">Upload File Excel</h2>
+            <p class="text-sm text-gray-600 mb-6">Format harus memiliki kolom <code>Nomor Transaksi</code> dan
+                <code>Nomor Brimen</code>.
+            </p>
+            <input type="file" id="uploadExcel" accept=".xlsx"
+                class="mb-4 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-secondary/10 file:text-secondary hover:file:bg-secondary/20" />
+
+            <div id="previewPanel" class="hidden border border-gray-300 p-4 rounded mt-4 text-sm bg-white">
+                <p><strong class="text-primary">Preview Data:</strong></p>
+                <p id="previewText" class="mt-2"></p>
+                <p id="fileInfo" class="text-xs text-gray-500 mt-1"></p>
+                <button onclick="confirmGenerate()"
+                    class="mt-4 bg-secondary hover:bg-secondary/80 text-white font-semibold py-2 px-4 rounded">Generate
+                    Label</button>
+            </div>
+
+            <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-4 mt-8 no-print">
+                <h3 class="text-md font-semibold mb-2 text-primary">Contoh Layout Label (Tom & Jerry No.100)</h3>
+                <div class="grid grid-cols-3 gap-2 text-xs text-center text-gray-500">
+                    <div class="border border-dashed p-2 h-[25.4mm]">Label 1</div>
+                    <div class="border border-dashed p-2 h-[25.4mm]">Label 2</div>
+                    <div class="border border-dashed p-2 h-[25.4mm]">Label 3</div>
+                </div>
+                <p class="text-xs mt-2 text-gray-500">Ukuran: 70mm x 25.4mm — 3 kolom per baris</p>
+            </div>
+
+            <div class="flex justify-start gap-4 items-center mt-6">
+                <button onclick="handlePrint()"
+                    class="bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded disabled:opacity-50"
+                    id="printBtn" disabled>Cetak Label</button>
+                <button onclick="resetLabels()"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded" id="resetBtn"
+                    disabled>Reset</button>
+            </div>
+        </div>
+
+        <div class="mt-12 flex flex-col lg:flex-row gap-8">
+            <div class="flex-1 space-y-12 print:block">
+                <h3 class="text-lg font-semibold mb-4 text-primary no-print">Label yang Akan Dihasilkan:</h3>
+                <div id="labelPreview">
+                    <!-- Label sheets here -->
+                </div>
+            </div>
+
+            <div class="no-print w-full lg:w-[300px] bg-white p-6 rounded shadow h-fit">
+                <h3 class="text-lg font-bold mb-2 text-primary">Riwayat Cetak</h3>
+                <ul id="historyLog" class="text-sm text-gray-700 space-y-1"></ul>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const uploadInput = document.getElementById('uploadExcel');
+        const labelContainer = document.getElementById('labelPreview');
+        const printBtn = document.getElementById('printBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const historyLog = document.getElementById('historyLog');
+        const previewPanel = document.getElementById('previewPanel');
+        const previewText = document.getElementById('previewText');
+        const fileInfo = document.getElementById('fileInfo');
+
+        let currentData = [];
+
+        uploadInput.addEventListener('change', function (e) {
+            const file = uploadInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                if (!jsonData.length || !jsonData[0]['Nomor Transaksi'] || !jsonData[0]['Nomor Brimen']) {
+                    Swal.fire({ icon: 'error', title: 'Format Excel tidak valid', text: 'Kolom harus mengandung Nomor Transaksi dan Nomor Brimen.' });
+                    uploadInput.value = '';
+                    return;
+                }
+
+                currentData = jsonData;
+                const first = jsonData[0]['Nomor Transaksi'];
+                const last = jsonData[jsonData.length - 1]['Nomor Transaksi'];
+                previewText.innerHTML = `Jumlah Data: <strong>${jsonData.length}</strong><br>Nomor Transaksi dari <strong>${first}</strong> sampai <strong>${last}</strong>`;
+                fileInfo.innerHTML = `Nama file: <strong>${file.name}</strong> &bull; Diunggah pada: <strong>${new Date().toLocaleString()}</strong>`;
+                previewPanel.classList.remove('hidden');
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function confirmGenerate() {
+            Swal.fire({
+                title: 'Generate Label?',
+                text: 'Apakah Anda yakin ingin membuat label dari data ini?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, generate!',
+                cancelButtonText: 'Batal'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    generateLabels(currentData);
+                    previewPanel.classList.add('hidden');
+                }
+            });
+        }
+
+        function generateLabels(data) {
+            labelContainer.innerHTML = '';
+            printBtn.disabled = false;
+            resetBtn.disabled = false;
+
+            const maxPerPage = 30;
+            for (let i = 0; i < data.length; i += maxPerPage) {
+                const pageData = data.slice(i, i + maxPerPage);
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'grid grid-cols-3 gap-2 print:grid-cols-3 print:gap-0';
+
+                pageData.forEach(item => {
+                    const label = document.createElement('div');
+                    label.className = 'dotted-border p-2 w-[70mm] h-[25.4mm] text-[10pt] overflow-hidden bg-white rounded shadow-sm flex flex-col justify-center';
+                    label.innerHTML = `
+            <div class="font-bold text-black text-sm">${item['Nomor Transaksi'] || ''}</div>
+            <div class="text-black text-sm">${item['Nomor Brimen'] || ''}</div>
+          `;
+                    pageWrapper.appendChild(label);
+                });
+
+                labelContainer.appendChild(pageWrapper);
+
+                if (i + maxPerPage < data.length) {
+                    const breakLine = document.createElement('div');
+                    breakLine.className = 'page-break';
+                    labelContainer.appendChild(breakLine);
+                }
+            }
+        }
+
+        function handlePrint() {
+            const time = new Date().toLocaleString();
+            const jumlah = currentData.length;
+            const item = document.createElement('li');
+            item.innerText = `(${time}) ${jumlah} label dicetak.`;
+
+            let logs = JSON.parse(localStorage.getItem('printLogs') || '[]');
+            logs.push({ time, jumlah });
+            localStorage.setItem('printLogs', JSON.stringify(logs));
+            historyLog.appendChild(item);
+
+            window.print();
+        }
+
+        function resetLabels() {
+            labelContainer.innerHTML = '';
+            uploadInput.value = '';
+            printBtn.disabled = true;
+            resetBtn.disabled = true;
+            previewPanel.classList.add('hidden');
+            currentData = [];
+        }
+
+        function loadHistory() {
+            let logs = JSON.parse(localStorage.getItem('printLogs') || '[]');
+            logs.forEach(log => {
+                const item = document.createElement('li');
+                item.innerText = `(${log.time}) ${log.jumlah} label dicetak.`;
+                historyLog.appendChild(item);
+            });
+        }
+
+        loadHistory();
+    </script>
+</body>
+
+</html>
