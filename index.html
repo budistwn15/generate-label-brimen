@@ -5,16 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Label Generator Brimen</title>
-    <link rel="manifest" href="manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('✅ ServiceWorker terdaftar:', reg.scope))
-                    .catch(err => console.error('❌ ServiceWorker gagal:', err));
-            });
-        }
-    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -64,8 +54,6 @@
     <header class="bg-primary text-white py-4 shadow no-print">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
-                <img src="https://upload.wikimedia.org/wikipedia/id/thumb/e/ef/Logo_Bank_BRI.svg/2560px-Logo_Bank_BRI.svg.png"
-                    alt="BRI Logo" class="h-8 w-auto">
                 <div>
                     <h1 class="text-xl font-bold leading-tight">Label Generator Brimen</h1>
                     <span class="text-xs">Kantor Cabang BRI Harapan Indah Bekasi</span>
