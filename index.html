@@ -76,18 +76,25 @@
             <p class="text-sm text-gray-600 mb-6">Format harus memiliki kolom <code>Nomor Transaksi</code> dan
                 <code>Nomor Brimen</code>.
             </p>
-            <input type="file" id="uploadExcel" accept=".xlsx" data-intro="1. Unggah file Excel kamu di sini"
-                data-step="1"
-                class="mb-4 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-secondary/10 file:text-secondary hover:file:bg-secondary/20" />
+            <div id="dropzone"
+                class="w-full p-6 border-2 border-dashed border-secondary rounded text-center cursor-pointer text-sm text-secondary hover:bg-secondary/5 flex flex-col items-center justify-center gap-2"
+                data-intro="1. Unggah file Excel kamu di sini" data-step="1">
+                <img src="excel.png" alt="Excel Icon" class="h-12 w-12">
+                <div id="dropzoneContent" class="flex flex-col items-center justify-center gap-1">
+                    <span id="dropzoneFilename">Klik atau seret file Excel ke sini untuk mengunggah</span>
+                    <span id="dropzoneFileInfo" class="text-xs text-gray-500"></span>
+                </div>
+                <input type="file" id="uploadExcel" accept=".xlsx" class="hidden" />
+            </div>
 
             <div id="previewPanel" class="border border-gray-300 p-4 rounded mt-4 text-sm bg-white"
                 data-intro="2. Setelah upload, periksa terlebih dahulu preview data excel" data-step="2">
                 <p><strong class="text-primary">Preview Data:</strong></p>
                 <p id="previewText" class="mt-2"></p>
                 <p id="fileInfo" class="text-xs text-gray-500 mt-1"></p>
-                <div class="mt-4 overflow-auto">
+                <div class="max-h-[400px] overflow-y-auto border rounded mt-4 shadow-sm">
                     <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
-                        <thead class="bg-gray-100 text-gray-800">
+                        <thead class="sticky top-0 bg-gray-100 z-10">
                             <tr>
                                 <th class="border px-3 py-2">Pilih</th>
                                 <th class="border px-3 py-2">Nomor Transaksi</th>
@@ -145,6 +152,47 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', function () {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('uploadExcel');
+
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', function () {
+                const dropzoneFilename = document.getElementById('dropzoneFilename');
+                const dropzoneFileInfo = document.getElementById('dropzoneFileInfo');
+
+                if (fileInput.files.length) {
+                    dropzoneFilename.innerText = fileInput.files[0].name;
+                    dropzoneFileInfo.innerText = `Ukuran: ${(fileInput.files[0].size / 1024).toFixed(1)} KB`;
+                    successIcon.classList.remove('hidden');
+                }
+            });
+
+            ['dragenter', 'dragover'].forEach(evt => {
+                dropzone.addEventListener(evt, e => {
+                    e.preventDefault();
+                    dropzone.classList.add('bg-secondary/10');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(evt => {
+                dropzone.addEventListener(evt, e => {
+                    e.preventDefault();
+                    dropzone.classList.remove('bg-secondary/10');
+                });
+            });
+
+            dropzone.addEventListener('drop', e => {
+                const files = e.dataTransfer.files;
+                if (files.length) {
+                    fileInput.files = files;
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                    document.getElementById('dropzoneFilename').innerText = files[0].name;
+                    document.getElementById('dropzoneFileInfo').innerText = `Ukuran: ${(files[0].size / 1024).toFixed(1)} KB`;
+                }
+            });
+
             if (!localStorage.getItem('hasSeenTour')) {
                 introJs().start();
                 localStorage.setItem('hasSeenTour', 'true');
@@ -276,13 +324,22 @@
         }
 
         function resetLabels() {
-            labelContainer.innerHTML = '';
-            uploadInput.value = '';
-            printBtn.disabled = true;
-            resetBtn.disabled = true;
-            previewPanel.classList.add('hidden');
+            document.getElementById('labelPreview').innerHTML = '';
+            document.getElementById('uploadExcel').value = '';
+            document.getElementById('printBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = true;
+            document.getElementById('previewPanel').classList.add('hidden');
             currentData = [];
+
+            document.getElementById('dropzoneFilename').innerText = 'Klik atau seret file Excel ke sini untuk mengunggah';
+            document.getElementById('dropzoneFileInfo').innerText = '';
+            document.getElementById('uploadSuccessIcon').classList.add('hidden');
+            document.getElementById('changeFileBtn').classList.add('hidden');
+
+            const previewTable = document.getElementById('previewTableBody');
+            if (previewTable) previewTable.innerHTML = '';
         }
+
 
         function loadHistory() {
             let logs = JSON.parse(localStorage.getItem('printLogs') || '[]');
