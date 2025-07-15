@@ -73,8 +73,8 @@
             </div>
 
             <h2 class="text-xl font-semibold mb-4 text-primary">Upload File Excel</h2>
-            <p class="text-sm text-gray-600 mb-6">Format harus memiliki kolom <code>Nomor Transaksi</code> dan
-                <code>Nomor Brimen</code>.
+            <p class="text-sm text-gray-600 mb-6">Format harus memiliki kolom <code>Kode Brimen</code> dan
+                <code>Lokasi</code>.
             </p>
             <div id="dropzone"
                 class="w-full p-6 border-2 border-dashed border-secondary rounded text-center cursor-pointer text-sm text-secondary hover:bg-secondary/5 flex flex-col items-center justify-center gap-2"
@@ -97,8 +97,8 @@
                         <thead class="sticky top-0 bg-gray-100 z-10">
                             <tr>
                                 <th class="border px-3 py-2">Pilih</th>
-                                <th class="border px-3 py-2">Nomor Transaksi</th>
-                                <th class="border px-3 py-2">Nomor Brimen</th>
+                                <th class="border px-3 py-2">Kode Brimen</th>
+                                <th class="border px-3 py-2">Lokasi</th>
                             </tr>
                         </thead>
                         <tbody id="previewTableBody"></tbody>
@@ -222,8 +222,8 @@
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-                if (!jsonData.length || !jsonData[0]['Nomor Transaksi'] || !jsonData[0]['Nomor Brimen']) {
-                    Swal.fire({ icon: 'error', title: 'Format Excel tidak valid', text: 'Kolom harus mengandung Nomor Transaksi dan Nomor Brimen.' });
+                if (!jsonData.length || !jsonData[0]['Kode Brimen'] || !jsonData[0]['Lokasi']) {
+                    Swal.fire({ icon: 'error', title: 'Format Excel tidak valid', text: 'Kolom harus mengandung Kode Brimen dan Lokasi.' });
                     uploadInput.value = '';
                     return;
                 }
@@ -231,22 +231,22 @@
                 currentData = jsonData;
                 document.getElementById('previewTableBody').innerHTML = '';
                 jsonData.forEach((row, index) => {
-                    if (!row['Nomor Transaksi'] || !row['Nomor Brimen']) return;
+                    if (!row['Kode Brimen'] || !row['Lokasi']) return;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td class="border px-3 py-1 text-center">
                         <input type="checkbox" class="row-toggle" data-index="${index}" checked>
                         </td>
-                        <td class="border px-3 py-1">${row['Nomor Transaksi']}</td>
-                        <td class="border px-3 py-1">${row['Nomor Brimen']}</td>
+                        <td class="border px-3 py-1">${row['Kode Brimen']}</td>
+                        <td class="border px-3 py-1">${row['Lokasi']}</td>
                     `;
                     document.getElementById('previewTableBody').appendChild(tr);
                 });
 
 
-                const first = jsonData[0]['Nomor Transaksi'];
-                const last = jsonData[jsonData.length - 1]['Nomor Transaksi'];
-                previewText.innerHTML = `Jumlah Data: <strong>${jsonData.length}</strong><br>Nomor Transaksi dari <strong>${first}</strong> sampai <strong>${last}</strong>`;
+                const first = jsonData[0]['Kode Brimen'];
+                const last = jsonData[jsonData.length - 1]['Kode Brimen'];
+                previewText.innerHTML = `Jumlah Data: <strong>${jsonData.length}</strong><br>Kode Brimen dari <strong>${first}</strong> sampai <strong>${last}</strong>`;
                 fileInfo.innerHTML = `Nama file: <strong>${file.name}</strong> &bull; Diunggah pada: <strong>${new Date().toLocaleString()}</strong>`;
                 previewPanel.classList.remove('hidden');
             };
@@ -293,8 +293,8 @@
                     const label = document.createElement('div');
                     label.className = 'dotted-border p-2 w-[70mm] h-[25.4mm] text-[10pt] overflow-hidden bg-white rounded shadow-sm flex flex-col justify-center';
                     label.innerHTML = `
-            <div class="font-bold text-black text-sm">${item['Nomor Transaksi'] || ''}</div>
-            <div class="text-black text-sm">${item['Nomor Brimen'] || ''}</div>
+            <div class="font-bold text-black text-sm">${item['Kode Brimen'] || ''}</div>
+            <div class="text-black text-sm">${item['Lokasi'] || ''}</div>
           `;
                     pageWrapper.appendChild(label);
                 });
