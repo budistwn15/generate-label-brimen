@@ -21,6 +21,8 @@
         };
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <style>
         @media print {
             @page {
@@ -51,9 +53,9 @@
 </head>
 
 <body class="bg-graybg text-gray-800">
-    <header class="bg-primary text-white py-4 shadow no-print">
-        <div class="container mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center gap-4">
+    <header class="bg-primary text-white py-4 shadow no-print flex flex-row">
+        <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
+            <div class="flex items-center gap-4 flex-row">
                 <div>
                     <h1 class="text-xl font-bold leading-tight">Label Generator Brimen</h1>
                     <span class="text-xs">Kantor Cabang BRI Harapan Indah Bekasi</span>
@@ -65,46 +67,71 @@
 
     <main class="container mx-auto px-4 py-12">
         <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-8 no-print">
+            <div class="flex justify-center items-center gap-4 mb-6">
+                <img src="bri.svg" alt="Logo BRI" class="h-10">
+                <img src="brimen.png" alt="Logo Brimen" class="h-10">
+            </div>
+
             <h2 class="text-xl font-semibold mb-4 text-primary">Upload File Excel</h2>
             <p class="text-sm text-gray-600 mb-6">Format harus memiliki kolom <code>Nomor Transaksi</code> dan
                 <code>Nomor Brimen</code>.
             </p>
-            <input type="file" id="uploadExcel" accept=".xlsx"
+            <input type="file" id="uploadExcel" accept=".xlsx" data-intro="1. Unggah file Excel kamu di sini"
+                data-step="1"
                 class="mb-4 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-secondary/10 file:text-secondary hover:file:bg-secondary/20" />
 
-            <div id="previewPanel" class="hidden border border-gray-300 p-4 rounded mt-4 text-sm bg-white">
+            <div id="previewPanel" class="border border-gray-300 p-4 rounded mt-4 text-sm bg-white"
+                data-intro="2. Setelah upload, periksa terlebih dahulu preview data excel" data-step="2">
                 <p><strong class="text-primary">Preview Data:</strong></p>
                 <p id="previewText" class="mt-2"></p>
                 <p id="fileInfo" class="text-xs text-gray-500 mt-1"></p>
-                <button onclick="confirmGenerate()"
-                    class="mt-4 bg-secondary hover:bg-secondary/80 text-white font-semibold py-2 px-4 rounded">Generate
-                    Label</button>
-            </div>
-
-            <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-4 mt-8 no-print">
-                <h3 class="text-md font-semibold mb-2 text-primary">Contoh Layout Label (Tom & Jerry No.100)</h3>
-                <div class="grid grid-cols-3 gap-2 text-xs text-center text-gray-500">
-                    <div class="border border-dashed p-2 h-[25.4mm]">Label 1</div>
-                    <div class="border border-dashed p-2 h-[25.4mm]">Label 2</div>
-                    <div class="border border-dashed p-2 h-[25.4mm]">Label 3</div>
+                <div class="mt-4 overflow-auto">
+                    <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
+                        <thead class="bg-gray-100 text-gray-800">
+                            <tr>
+                                <th class="border px-3 py-2">Pilih</th>
+                                <th class="border px-3 py-2">Nomor Transaksi</th>
+                                <th class="border px-3 py-2">Nomor Brimen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewTableBody"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-xs text-gray-500 pt-2 px-2">
+                                    Centang hanya baris yang ingin digenerate. Baris yang tidak dicentang akan
+                                    diabaikan.
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
-                <p class="text-xs mt-2 text-gray-500">Ukuran: 70mm x 25.4mm — 3 kolom per baris</p>
+                <button onclick="confirmGenerate()" id="generateBtn"
+                    data-intro="3. Jika data sudah sesuai, klik tombol ini untuk membuat label" data-step="3"
+                    class="mt-4 bg-secondary hover:bg-secondary/80 text-white font-semibold py-2 px-4 rounded">
+                    Generate Label
+                </button>
             </div>
 
             <div class="flex justify-start gap-4 items-center mt-6">
-                <button onclick="handlePrint()"
+                <button onclick="handlePrint()" id="printBtn"
+                    data-intro="5. Setelah label muncul, klik tombol ini untuk mencetak" data-step="5"
                     class="bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded disabled:opacity-50"
-                    id="printBtn" disabled>Cetak Label</button>
-                <button onclick="resetLabels()"
-                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded" id="resetBtn"
-                    disabled>Reset</button>
+                    disabled>
+                    Cetak Label
+                </button>
+                <button onclick="resetLabels()" id="resetBtn"
+                    data-intro="6. Untuk mengganti file Excel, klik tombol Reset terlebih dahulu" data-step="6"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded" disabled>
+                    Reset
+                </button>
             </div>
         </div>
 
         <div class="mt-12 flex flex-col lg:flex-row gap-8">
             <div class="flex-1 space-y-12 print:block">
                 <h3 class="text-lg font-semibold mb-4 text-primary no-print">Label yang Akan Dihasilkan:</h3>
-                <div id="labelPreview">
+                <div id="labelPreview" data-intro="4. Hasil label akan ditampilkan di sini setelah kamu klik generate"
+                    data-step="4">
                     <!-- Label sheets here -->
                 </div>
             </div>
@@ -115,6 +142,16 @@
             </div>
         </div>
     </main>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            if (!localStorage.getItem('hasSeenTour')) {
+                introJs().start();
+                localStorage.setItem('hasSeenTour', 'true');
+            }
+        });
+    </script>
+
 
     <script>
         const uploadInput = document.getElementById('uploadExcel');
@@ -144,6 +181,21 @@
                 }
 
                 currentData = jsonData;
+                document.getElementById('previewTableBody').innerHTML = '';
+                jsonData.forEach((row, index) => {
+                    if (!row['Nomor Transaksi'] || !row['Nomor Brimen']) return;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="border px-3 py-1 text-center">
+                        <input type="checkbox" class="row-toggle" data-index="${index}" checked>
+                        </td>
+                        <td class="border px-3 py-1">${row['Nomor Transaksi']}</td>
+                        <td class="border px-3 py-1">${row['Nomor Brimen']}</td>
+                    `;
+                    document.getElementById('previewTableBody').appendChild(tr);
+                });
+
+
                 const first = jsonData[0]['Nomor Transaksi'];
                 const last = jsonData[jsonData.length - 1]['Nomor Transaksi'];
                 previewText.innerHTML = `Jumlah Data: <strong>${jsonData.length}</strong><br>Nomor Transaksi dari <strong>${first}</strong> sampai <strong>${last}</strong>`;
@@ -154,20 +206,29 @@
         });
 
         function confirmGenerate() {
+            const checkboxes = document.querySelectorAll('.row-toggle');
+            const selectedIndexes = [...checkboxes].filter(cb => cb.checked).map(cb => parseInt(cb.dataset.index));
+            if (selectedIndexes.length === 0) {
+                Swal.fire('Tidak ada data dipilih', 'Centang minimal satu baris untuk membuat label.', 'warning');
+                return;
+            }
+
             Swal.fire({
                 title: 'Generate Label?',
-                text: 'Apakah Anda yakin ingin membuat label dari data ini?',
+                text: 'Apakah Anda yakin ingin membuat label dari data terpilih?',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Ya, generate!',
                 cancelButtonText: 'Batal'
             }).then(result => {
                 if (result.isConfirmed) {
-                    generateLabels(currentData);
+                    const filteredData = selectedIndexes.map(i => currentData[i]);
+                    generateLabels(filteredData);
                     previewPanel.classList.add('hidden');
                 }
             });
         }
+
 
         function generateLabels(data) {
             labelContainer.innerHTML = '';
