@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Generator Brimen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#024986',
+                        secondary: '#e76a28',
+                        graybg: '#f2f2f2'
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <style>
+        @media print {
+            @page {
+                margin: 0;
+            }
+
+            body {
+                margin: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+        }
+
+        .dotted-border {
+            border: 1px dotted #ccc;
+        }
+
+        .print-only {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-graybg text-gray-800">
+    <header class="bg-primary text-white py-4 shadow no-print flex flex-row">
+        <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center">
+            <div class="flex items-center gap-4 flex-row">
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Label Generator Brimen</h1>
+                    <span class="text-xs">Kantor Cabang BRI Harapan Indah Bekasi</span>
+                </div>
+            </div>
+            <span class="text-sm">Cetak Label Tom & Jerry No.100 dari Excel</span>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-12">
+        <div class="max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-8 no-print">
+            <div class="flex justify-center items-center gap-4 mb-6">
+                <img src="bri.svg" alt="Logo BRI" class="h-10">
+                <img src="brimen.png" alt="Logo Brimen" class="h-10">
+            </div>
+
+            <h2 class="text-xl font-semibold mb-4 text-primary">Upload File Excel</h2>
+            <p class="text-sm text-gray-600 mb-6">Format harus memiliki kolom <code>Kode Brimen</code> dan
+                <code>Lokasi</code>.
+            </p>
+            <div id="dropzone"
+                class="w-full p-6 border-2 border-dashed border-secondary rounded text-center cursor-pointer text-sm text-secondary hover:bg-secondary/5 flex flex-col items-center justify-center gap-2"
+                data-intro="1. Unggah file Excel kamu di sini" data-step="1">
+                <img src="excel.png" alt="Excel Icon" class="h-12 w-12">
+                <div id="dropzoneContent" class="flex flex-col items-center justify-center gap-1">
+                    <span id="dropzoneFilename">Klik atau seret file Excel ke sini untuk mengunggah</span>
+                    <span id="dropzoneFileInfo" class="text-xs text-gray-500"></span>
+                </div>
+                <input type="file" id="uploadExcel" accept=".xlsx" class="hidden" />
+            </div>
+
+            <div id="previewPanel" class="border border-gray-300 p-4 rounded mt-4 text-sm bg-white"
+                data-intro="2. Setelah upload, periksa terlebih dahulu preview data excel" data-step="2">
+                <p><strong class="text-primary">Preview Data:</strong></p>
+                <p id="previewText" class="mt-2"></p>
+                <p id="fileInfo" class="text-xs text-gray-500 mt-1"></p>
+                <div class="max-h-[400px] overflow-y-auto border rounded mt-4 shadow-sm">
+                    <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
+                        <thead class="sticky top-0 bg-gray-100 z-10">
+                            <tr>
+                                <th class="border px-3 py-2">Pilih</th>
+                                <th class="border px-3 py-2">Kode Brimen</th>
+                                <th class="border px-3 py-2">Lokasi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewTableBody"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-xs text-gray-500 pt-2 px-2">
+                                    Centang hanya baris yang ingin digenerate. Baris yang tidak dicentang akan
+                                    diabaikan.
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button onclick="confirmGenerate()" id="generateBtn"
+                    data-intro="3. Jika data sudah sesuai, klik tombol ini untuk membuat label" data-step="3"
+                    class="mt-4 bg-secondary hover:bg-secondary/80 text-white font-semibold py-2 px-4 rounded">
+                    Generate Label
+                </button>
+            </div>
+
+            <div class="flex justify-start gap-4 items-center mt-6">
+                <button onclick="handlePrint()" id="printBtn"
+                    data-intro="5. Setelah label muncul, klik tombol ini untuk mencetak" data-step="5"
+                    class="bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded disabled:opacity-50"
+                    disabled>
+                    Cetak Label
+                </button>
+                <button onclick="resetLabels()" id="resetBtn"
+                    data-intro="6. Untuk mengganti file Excel, klik tombol Reset terlebih dahulu" data-step="6"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded" disabled>
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-12 flex flex-col lg:flex-row gap-8">
+            <div class="flex-1 space-y-12 print:block order-2 sm:order-1">
+                <h3 class="text-lg font-semibold mb-4 text-primary no-print">Label yang Akan Dihasilkan:</h3>
+                <div id="labelPreview" data-intro="4. Hasil label akan ditampilkan di sini setelah kamu klik generate"
+                    data-step="4">
+                    <!-- Label sheets here -->
+                </div>
+            </div>
+
+            <div class="no-print w-full lg:w-[300px] bg-white p-6 rounded shadow h-fit order-1 sm:order-2">
+                <h3 class="text-lg font-bold mb-2 text-primary">Riwayat Cetak</h3>
+                <ul id="historyLog" class="text-sm text-gray-700 space-y-1"></ul>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('uploadExcel');
+
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', function () {
+                const dropzoneFilename = document.getElementById('dropzoneFilename');
+                const dropzoneFileInfo = document.getElementById('dropzoneFileInfo');
+
+                if (fileInput.files.length) {
+                    dropzoneFilename.innerText = fileInput.files[0].name;
+                    dropzoneFileInfo.innerText = `Ukuran: ${(fileInput.files[0].size / 1024).toFixed(1)} KB`;
+                    successIcon.classList.remove('hidden');
+                }
+            });
+
+            ['dragenter', 'dragover'].forEach(evt => {
+                dropzone.addEventListener(evt, e => {
+                    e.preventDefault();
+                    dropzone.classList.add('bg-secondary/10');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(evt => {
+                dropzone.addEventListener(evt, e => {
+                    e.preventDefault();
+                    dropzone.classList.remove('bg-secondary/10');
+                });
+            });
+
+            dropzone.addEventListener('drop', e => {
+                const files = e.dataTransfer.files;
+                if (files.length) {
+                    fileInput.files = files;
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                    document.getElementById('dropzoneFilename').innerText = files[0].name;
+                    document.getElementById('dropzoneFileInfo').innerText = `Ukuran: ${(files[0].size / 1024).toFixed(1)} KB`;
+                }
+            });
+
+            if (!localStorage.getItem('hasSeenTour')) {
+                introJs().start();
+                localStorage.setItem('hasSeenTour', 'true');
+            }
+        });
+    </script>
+
+
+    <script>
+        const uploadInput = document.getElementById('uploadExcel');
+        const labelContainer = document.getElementById('labelPreview');
+        const printBtn = document.getElementById('printBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const historyLog = document.getElementById('historyLog');
+        const previewPanel = document.getElementById('previewPanel');
+        const previewText = document.getElementById('previewText');
+        const fileInfo = document.getElementById('fileInfo');
+
+        let currentData = [];
+
+        uploadInput.addEventListener('change', function (e) {
+            const file = uploadInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                if (!jsonData.length || !jsonData[0]['Kode Brimen'] || !jsonData[0]['Lokasi']) {
+                    Swal.fire({ icon: 'error', title: 'Format Excel tidak valid', text: 'Kolom harus mengandung Kode Brimen dan Lokasi.' });
+                    uploadInput.value = '';
+                    return;
+                }
+
+                currentData = jsonData;
+                document.getElementById('previewTableBody').innerHTML = '';
+                jsonData.forEach((row, index) => {
+                    if (!row['Kode Brimen'] || !row['Lokasi']) return;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="border px-3 py-1 text-center">
+                        <input type="checkbox" class="row-toggle" data-index="${index}" checked>
+                        </td>
+                        <td class="border px-3 py-1">${row['Kode Brimen']}</td>
+                        <td class="border px-3 py-1">${row['Lokasi']}</td>
+                    `;
+                    document.getElementById('previewTableBody').appendChild(tr);
+                });
+
+
+                const first = jsonData[0]['Kode Brimen'];
+                const last = jsonData[jsonData.length - 1]['Kode Brimen'];
+                previewText.innerHTML = `Jumlah Data: <strong>${jsonData.length}</strong><br>Kode Brimen dari <strong>${first}</strong> sampai <strong>${last}</strong>`;
+                fileInfo.innerHTML = `Nama file: <strong>${file.name}</strong> &bull; Diunggah pada: <strong>${new Date().toLocaleString()}</strong>`;
+                previewPanel.classList.remove('hidden');
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function confirmGenerate() {
+            const checkboxes = document.querySelectorAll('.row-toggle');
+            const selectedIndexes = [...checkboxes].filter(cb => cb.checked).map(cb => parseInt(cb.dataset.index));
+            if (selectedIndexes.length === 0) {
+                Swal.fire('Tidak ada data dipilih', 'Centang minimal satu baris untuk membuat label.', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Generate Label?',
+                text: 'Apakah Anda yakin ingin membuat label dari data terpilih?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, generate!',
+                cancelButtonText: 'Batal'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const filteredData = selectedIndexes.map(i => currentData[i]);
+                    generateLabels(filteredData);
+                    previewPanel.classList.add('hidden');
+                }
+            });
+        }
+
+
+        function generateLabels(data) {
+            labelContainer.innerHTML = '';
+            printBtn.disabled = false;
+            resetBtn.disabled = false;
+
+            const maxPerPage = 30;
+            for (let i = 0; i < data.length; i += maxPerPage) {
+                const pageData = data.slice(i, i + maxPerPage);
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'grid grid-cols-3 gap-2 print:grid-cols-3 print:gap-0';
+
+                pageData.forEach(item => {
+                    const label = document.createElement('div');
+                    label.className = 'dotted-border p-2 w-[70mm] h-[25.4mm] text-[10pt] overflow-hidden bg-white rounded shadow-sm flex flex-col justify-center';
+                    label.innerHTML = `
+            <div class="font-bold text-black text-sm">${item['Kode Brimen'] || ''}</div>
+            <div class="text-black text-sm">${item['Lokasi'] || ''}</div>
+          `;
+                    pageWrapper.appendChild(label);
+                });
+
+                labelContainer.appendChild(pageWrapper);
+
+                if (i + maxPerPage < data.length) {
+                    const breakLine = document.createElement('div');
+                    breakLine.className = 'page-break';
+                    labelContainer.appendChild(breakLine);
+                }
+            }
+        }
+
+        function handlePrint() {
+            const time = new Date().toLocaleString();
+            const jumlah = currentData.length;
+            const item = document.createElement('li');
+            item.innerText = `(${time}) ${jumlah} label dicetak.`;
+
+            let logs = JSON.parse(localStorage.getItem('printLogs') || '[]');
+            logs.push({ time, jumlah });
+            localStorage.setItem('printLogs', JSON.stringify(logs));
+            historyLog.appendChild(item);
+
+            window.print();
+        }
+
+        function resetLabels() {
+            document.getElementById('labelPreview').innerHTML = '';
+            document.getElementById('uploadExcel').value = '';
+            document.getElementById('printBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = true;
+            document.getElementById('previewPanel').classList.add('hidden');
+            currentData = [];
+
+            document.getElementById('dropzoneFilename').innerText = 'Klik atau seret file Excel ke sini untuk mengunggah';
+            document.getElementById('dropzoneFileInfo').innerText = '';
+            document.getElementById('uploadSuccessIcon').classList.add('hidden');
+            document.getElementById('changeFileBtn').classList.add('hidden');
+
+            const previewTable = document.getElementById('previewTableBody');
+            if (previewTable) previewTable.innerHTML = '';
+        }
+
+
+        function loadHistory() {
+            let logs = JSON.parse(localStorage.getItem('printLogs') || '[]');
+            logs.forEach(log => {
+                const item = document.createElement('li');
+                item.innerText = `(${log.time}) ${log.jumlah} label dicetak.`;
+                historyLog.appendChild(item);
+            });
+        }
+
+        loadHistory();
+    </script>
+</body>
+
+</html>
