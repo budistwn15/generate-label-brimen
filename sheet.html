@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Label 103tj Statis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            body {
+                margin: 0;
+            }
+        }
+
+        .label-sheet {
+            width: 21cm;
+            height: 29.7cm;
+            padding-top: 1.7cm;
+            padding-left: 0.5cm;
+            padding-right: 0.5cm;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(3, 6.4cm);
+            grid-template-rows: repeat(4, 3.2cm);
+            gap: 0.6cm 0.4cm;
+        }
+
+        .label {
+            border: 1px dashed #888;
+            padding: 0.2cm;
+            font-size: 12px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body class="bg-white">
+    <div class="label-sheet mx-auto">
+        <!-- 3 x 4 = 12 label -->
+        <div class="label">Label 1</div>
+        <div class="label">Label 2</div>
+        <div class="label">Label 3</div>
+        <div class="label">Label 4</div>
+        <div class="label">Label 5</div>
+        <div class="label">Label 6</div>
+        <div class="label">Label 7</div>
+        <div class="label">Label 8</div>
+        <div class="label">Label 9</div>
+        <div class="label">Label 10</div>
+        <div class="label">Label 11</div>
+        <div class="label">Label 12</div>
+    </div>
+</body>
+
+</html>

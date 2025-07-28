@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Label T&J 103</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            body {
+                margin: 0;
+            }
+        }
+
+        .label {
+            border: 1px dashed #888;
+            padding: 0.2cm;
+            font-size: 24px;
+            /* sebelumnya 11px */
+            box-sizing: border-box;
+        }
+
+
+        .label-sheet {
+            width: 21cm;
+            height: 29.7cm;
+            padding-top: 1.7cm;
+            padding-left: 0.5cm;
+            padding-right: 0.5cm;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(3, 6.4cm);
+            grid-template-rows: repeat(4, 3.2cm);
+            gap: 0.6cm 0.4cm;
+            page-break-after: always;
+        }
+
+        .label {
+            border: 1px dashed #888;
+            padding: 0.2cm;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-6">
+    <div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-xl font-bold mb-4 text-center text-blue-700">Label Generator T&J 103</h1>
+
+        <input type="file" id="excelFile" accept=".xlsx" class="mb-4 w-full" />
+
+        <div class="flex gap-4 mb-4">
+            <button onclick="generateLabels()" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Label</button>
+            <button onclick="downloadPDF()" class="bg-green-600 text-white px-4 py-2 rounded">Download PDF</button>
+        </div>
+
+        <div id="labelContainer" class="space-y-8"></div>
+    </div>
+
+    <script>
+        let parsedData = [];
+
+        document.getElementById('excelFile').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet);
+
+                if (!json.length || !json[0]['Kode Brimen'] || !json[0]['Lokasi']) {
+                    alert("Kolom harus berisi 'Kode Brimen' dan 'Lokasi'");
+                    return;
+                }
+
+                parsedData = json;
+                alert("File berhasil dimuat. Klik Generate Label.");
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function generateLabels() {
+            const container = document.getElementById('labelContainer');
+            container.innerHTML = '';
+
+            const perPage = 12;
+            for (let i = 0; i < parsedData.length; i += perPage) {
+                const page = document.createElement('div');
+                page.className = 'label-sheet';
+
+                const pageData = parsedData.slice(i, i + perPage);
+                pageData.forEach(item => {
+                    const label = document.createElement('div');
+                    label.className = 'label';
+                    label.innerHTML = `
+            <div class="font-bold text-lg">${item['Kode Brimen'] || '&nbsp;'}</div>
+            <div class="text-lg">${item['Lokasi'] || '&nbsp;'}</div>
+          `;
+                    page.appendChild(label);
+                });
+
+                // Isi kosong kalau kurang dari 12
+                for (let j = pageData.length; j < perPage; j++) {
+                    const emptyLabel = document.createElement('div');
+                    emptyLabel.className = 'label';
+                    emptyLabel.innerHTML = '&nbsp;';
+                    page.appendChild(emptyLabel);
+                }
+
+                container.appendChild(page);
+            }
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('labelContainer');
+            html2pdf().from(element).set({
+                margin: 0,
+                filename: 'label-tj103.pdf',
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).save();
+        }
+    </script>
+</body>
+
+</html>
